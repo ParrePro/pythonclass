@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://icon2.cleanpng.com/20180412/tke/avujjbyha.webp" type="image/png">
+    <title>Teacher Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+            overflow: auto;
+            padding: 0 10px;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        #greeting {
+            font-style: italic;
+            color: #666;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #logoutBtn, #deleteAccountBtn {
+            background-color: #f44336;
+        }
+        #logoutBtn:hover, #deleteAccountBtn:hover {
+            background-color: #d32f2f;
+        }
+        #classes {
+            margin-top: 20px;
+        }
+        .class-item {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .class-item:hover {
+            background-color: #f0f0f0;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 5px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #message-container {
+            display: none;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teacher Dashboard</h1>
+        <p id="greeting"></p>
+        <button id="createClassBtn">Create Class</button>
+        <button id="logoutBtn">Logout</button>
+        <button id="deleteAccountBtn">Delete Account</button>
+        <div id="message-container"></div>
+        <h2>My Classes</h2>
+        <div id="classes"></div>
+    </div>
+
+    <div id="deleteAccountModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Delete Account</h2>
+            <p>Please enter your password to confirm account deletion:</p>
+            <input type="password" id="deleteAccountPassword" placeholder="Password">
+            <button id="confirmDeleteAccount">Delete Account</button>
+        </div>
+    </div>
+
+    <div id="createClassModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create New Class</h2>
+            <input type="text" id="className" placeholder="Enter class name">
+            <button id="confirmCreateClass">Create Class</button>
+        </div>
+    </div>
+
+    <script>
+        let teacherId;
+        let username;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            username = urlParams.get('username');
+            teacherId = urlParams.get('userId');
+            const greeting = urlParams.get('greeting');
+
+            document.getElementById('greeting').textContent = greeting || `Welcome, ${username}!`;
+
+            fetchClasses();
+
+            document.getElementById('createClassBtn').addEventListener('click', showCreateClassModal);
+            document.getElementById('logoutBtn').addEventListener('click', logout);
+            document.getElementById('deleteAccountBtn').addEventListener('click', showDeleteAccountModal);
+            document.getElementById('confirmDeleteAccount').addEventListener('click', deleteAccount);
+            document.getElementById('confirmCreateClass').addEventListener('click', createClass);
+
+            // Close modals when clicking on <span> (x)
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.onclick = function() {
+                    this.closest('.modal').style.display = "none";
+                }
+            });
+
+            // Close modals when clicking outside of them
+            window.onclick = function(event) {
+                if (event.target.className === 'modal') {
+                    event.target.style.display = "none";
+                }
+            }
+        });
+
+        function showCreateClassModal() {
+            document.getElementById('createClassModal').style.display = "block";
+        }
+
+        async function createClass() {
+            const className = document.getElementById('className').value.trim();
+            if (className) {
+                try {
+                    const response = await fetch('/api/class', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ name: className, teacherId: teacherId }),
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        showMessage(`Class created successfully! Class code: ${data.code}`, false);
+                        fetchClasses();
+                        document.getElementById('createClassModal').style.display = "none";
+                        document.getElementById('className').value = '';
+                    } else {
+                        showMessage('Error creating class: ' + data.error, true);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showMessage('An error occurred while creating the class.', true);
+                }
+            } else {
+                showMessage('Please enter a class name.', true);
+            }
+        }
+
+        function showMessage(message, isError) {
+            const messageContainer = document.getElementById('message-container');
+            messageContainer.textContent = message;
+            messageContainer.className = isError ? 'error' : 'success';
+            messageContainer.style.display = 'block';
+            setTimeout(() => {
+                messageContainer.style.display = 'none';
+            }, 5000);
+        }
+
+        async function fetchClasses() {
+            try {
+                const response = await fetch(`/api/classes/${teacherId}`);
+                const classes = await response.json();
+                const classesContainer = document.getElementById('classes');
+                classesContainer.innerHTML = '';
+                classes.forEach(cls => {
+                    const classElement = document.createElement('div');
+                    classElement.className = 'class-item';
+                    classElement.textContent = `${cls.name} (Code: ${cls.code})`;
+                    classElement.onclick = () => openClassDetails(cls.id, cls.name);
+                    classesContainer.appendChild(classElement);
+                });
+            } catch (error) {
+                console.error('Error fetching classes:', error);
+            }
+        }
+
+        function openClassDetails(classId, className) {
+            window.open(`/class_details.html?classId=${classId}&className=${encodeURIComponent(className)}`, '_blank');
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            window.location.href = '/teacher.html';
+        }
+
+        function showDeleteAccountModal() {
+            document.getElementById('deleteAccountModal').style.display = "block";
+        }
+
+        async function deleteAccount() {
+            const password = document.getElementById('deleteAccountPassword').value;
+            try {
+                const response = await fetch('/api/user', {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username, password }),
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    alert('Account deleted successfully');
+                    window.location.href = '/teacher.html';
+                } else {
+                    alert('Error deleting account: ' + data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the account.');
+            }
+        }
+    </script>
+</body>
+</html>

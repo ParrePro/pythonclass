@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="https://icon2.cleanpng.com/20180412/tke/avujjbyha.webp" type="image/png">
+    <title>Python Code Runner</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/mode/python/python.min.js"></script>
+    <script src="https://skulpt.org/js/skulpt.min.js" type="text/javascript"></script>
+    <script src="https://skulpt.org/js/skulpt-stdlib.js" type="text/javascript"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.0/theme/monokai.min.css">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        .container {
+            display: flex;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .main-content {
+            flex: 1;
+            margin-right: 20px;
+        }
+        .sidebar {
+            width: 200px;
+        }
+        h1, h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .auth-buttons {
+            text-align: right;
+            margin-bottom: 20px;
+        }
+        .auth-buttons button {
+            margin-left: 10px;
+        }
+        .editor-container {
+            margin-bottom: 20px;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .CodeMirror {
+            height: 400px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .output-container {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #input-area {
+            margin-top: 20px;
+            display: none;
+        }
+        #input-box {
+            width: calc(100% - 110px);
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 300px;
+            border-radius: 5px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover,
+        .close:focus {
+            color: #000;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal input[type="text"],
+        .modal input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .modal button {
+            width: 100%;
+            margin-top: 10px;
+        }
+        .message {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        #projects-list, #classes-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        #projects-list li, #classes-list li {
+            padding: 10px;
+            background-color: #ecf0f1;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #projects-list li:hover, #classes-list li:hover {
+            background-color: #bdc3c7;
+        }
+        #classes-container {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="main-content">
+            <div id="welcome-message"></div>
+            <div id="message-container" class="message"></div>
+            <div class="auth-buttons">
+                <button id="login-button">Login</button>
+                <button id="register-button">Create Account</button>
+                <button id="logout-button" style="display: none;">Logout</button>
+                <button id="delete-account-button" style="display: none;">Delete Account</button>
+                <button id="join-class-button" style="display: none;">Join Class</button>
+            </div>
+            <h1>Python Code Runner</h1>
+            <div class="editor-container">
+                <textarea id="code"></textarea>
+            </div>
+            <button id="run-button">Run Code</button>
+            <button id="start-new-button">Start New Code</button>
+            <button id="save-button">Save Code</button>
+            <button id="my-projects-button" style="display: none;">My Projects</button>
+            <div class="output-container">
+                <pre id="output"></pre>
+            </div>
+            <div id="input-area" style="display: none;">
+                <input type="text" id="input-box" placeholder="Enter input...">
+                <button id="submit-input">Submit</button>
+            </div>
+        </div>
+        <div class="sidebar">
+            <div id="classes-container" style="display: none;">
+                <h2>My Classes</h2>
+                <ul id="classes-list"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Login</h2>
+            <input type="text" id="login-username" placeholder="Username">
+            <input type="password" id="login-password" placeholder="Password">
+            <button id="login-submit">Login</button>
+            <div id="login-message" class="message"></div>
+        </div>
+    </div>
+
+    <div id="register-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Create Account</h2>
+            <input type="text" id="register-username" placeholder="Username">
+            <input type="password" id="register-password" placeholder="Password">
+            <button id="register-submit">Register</button>
+            <div id="register-message" class="message"></div>
+        </div>
+    </div>
+
+    <div id="delete-account-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Delete Account</h2>
+            <p>Please enter your password to confirm account deletion:</p>
+            <input type="password" id="delete-account-password" placeholder="Password">
+            <button id="delete-account-submit">Delete Account</button>
+            <div id="delete-account-message" class="message"></div>
+        </div>
+    </div>
+
+    <div id="join-class-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Join Class</h2>
+            <input type="text" id="class-code" placeholder="Enter class code">
+            <button id="join-class-submit">Join</button>
+            <div id="join-class-message" class="message"></div>
+        </div>
+    </div>
+
+    <div id="save-project-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Save Project</h2>
+            <input type="text" id="project-name" placeholder="Enter project name">
+            <button id="submit-save-project">Save as New Project</button>
+            <button id="override-project">Override Existing Project</button>
+        </div>
+    </div>
+
+    <div id="override-project-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Override Existing Project</h2>
+            <select id="project-select"></select>
+            <input type="text" id="new-project-name" placeholder="New project name (optional)">
+            <button id="confirm-override">Override Project</button>
+        </div>
+    </div>
+
+    <div id="my-projects-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>My Projects</h2>
+            <ul id="projects-list"></ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
